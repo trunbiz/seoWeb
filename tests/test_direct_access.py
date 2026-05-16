@@ -1,54 +1,65 @@
-# tests/test_direct_access.py
 import asyncio
 import random
 from playwright.async_api import Page
-from utils.interactions import human_scroll, click_random_internal_link, random_highlight_text
+from utils.interactions import human_scroll, click_semantic_internal_link, human_typing
+from utils.onsite_interactions import rich_on_site_interaction
+# [NÂNG CẤP]: Import bộ não AI
+from utils.ai_engine import generate_user_persona
 import config.settings as cfg
 
+REFERERS = [
+    "https://www.google.com.vn/", "https://www.google.com/", "https://www.bing.com/", "https://m.facebook.com/"
+]
+
+async def auto_close_popups(page: Page):
+    try:
+        close_selectors = [".close-popup", ".popup-close", "#close-btn", ".close", "[aria-label='Close']", ".fancybox-close"]
+        for selector in close_selectors:
+            elements = await page.locator(selector).all()
+            for el in elements:
+                if await el.is_visible():
+                    await el.click(force=True)
+                    print("   [!] Đã tự động đóng một popup/quảng cáo.")
+                    await asyncio.sleep(1)
+    except: pass
+
+async def auto_fake_conversion(page: Page):
+    """[TẮT] Comment tự động — nguy cơ Google phạt nặng.
+    
+    Lý do tắt:
+    - Google có thể phát hiện comment AI (pattern, thời gian, nội dung)
+    - Gây hại cho domain nếu bị phát hiện (penalty mềm ho?c c?ng)
+    - T? l? chuy?n ??i t? comment g?n nh? b?ng 0, r?i ro thì cao
+    
+    Thay vào ?ó: t?p trung content th?t, backlink th?t"""
+    pass
+
 async def run_deep_session(page: Page):
-    """
-    Kịch bản Deep Session:
-    Vào trang chủ -> Đọc -> Vào trang con 1 -> Đọc -> (Có thể) Vào trang con 2 -> Thoát
-    """
     target_url = cfg.TARGET_URL
     total_time_spent = 0
+    ai_topic = random.choice(cfg.SEO_KEYWORDS) if hasattr(cfg, 'SEO_KEYWORDS') and cfg.SEO_KEYWORDS else "sản phẩm và dịch vụ nổi bật"
+    referer = random.choice(REFERERS) if random.random() < 0.7 else None
     
     try:
-        print(f"--- [SESSION START] Truy cập: {target_url} ---")
+        source_name = referer if referer else "Direct (Trực tiếp)"
+        print(f"--- [SESSION START] Nguồn: {source_name} ---")
         
-        # BƯỚC 1: Truy cập trang đích
-        await page.goto(target_url, wait_until="domcontentloaded", timeout=60000)
+        # [NÂNG CẤP BÁ ĐẠO]: Khởi tạo Nhân cách AI cho luồng này
+        print("   [🧠] Đang xin cấp phát 'Nhân cách' từ Qwen2.5-Coder...")
+        persona = await generate_user_persona(target_url)
+        print(f"   [👤] Profile: User {persona['age']} tuổi | Tốc độ gõ: {persona['type_delay_ms']}ms | Tỷ lệ gõ sai: {persona['typo_chance']*100}%")
         
-        # Thời gian đọc trang đầu (30-50% tổng thời gian)
-        t1 = random.randint(20, 40)
-        await human_scroll(page, duration=t1)
-        total_time_spent += t1
+        # Truy cập
+        if referer: await page.goto(target_url, referer=referer, wait_until="domcontentloaded", timeout=60000)
+        else: await page.goto(target_url, wait_until="domcontentloaded", timeout=60000)
+            
+        await asyncio.sleep(2)
+        await auto_close_popups(page)
         
-        # BƯỚC 2: Click chuyển trang (Deep View Level 1)
-        if await click_random_internal_link(page):
-            try:
-                await page.wait_for_load_state("domcontentloaded")
-                print("   [+] Đã vào trang con Level 1.")
-                
-                # Thời gian đọc trang con
-                t2 = random.randint(30, 50)
-                await human_scroll(page, duration=t2)
-                total_time_spent += t2
-                
-                # BƯỚC 3: (50% Cơ hội) Click sâu thêm tầng nữa (Level 2)
-                if random.choice([True, False]) and total_time_spent < cfg.TEST_DURATION:
-                    if await click_random_internal_link(page):
-                        await page.wait_for_load_state("domcontentloaded")
-                        print("   [+] Đã vào trang con Level 2.")
-                        await human_scroll(page, duration=30)
-                        
-            except Exception as e:
-                print(f"   [-] Lỗi load trang con: {e}")
-        else:
-            print("   [-] Không tìm thấy link để click sâu, tiếp tục đọc trang hiện tại.")
-            await human_scroll(page, duration=20)
+        # Tương tác phong phú trên site
+        await rich_on_site_interaction(page, ai_topic, max_pages=3)
 
-        print(f"--- [SESSION END] Hoàn thành. Tổng thời gian: ~{total_time_spent}s ---")
+        print(f"--- [SESSION END] Hoàn thành tốt. ---")
 
     except Exception as e:
-        print(f"--- [FAILED] Lỗi Session: {e} ---")
+        print(f"--- [FAILED] Lỗi Session ngắt quãng: {e} ---")

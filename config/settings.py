@@ -1,44 +1,119 @@
-# config/settings.py
+# config/settings.py — C?u hình SEO toàn di?n
 
-# --- 1. CẤU HÌNH CƠ BẢN ---
-TARGET_URL = "https://topdev.vn" 
-PROXY_LIST = [] 
+# ────────────────────────────────────────────────────────────────────────────
+# PH?N A: CHI?N L??C N?I DUNG (80%)
+# ────────────────────────────────────────────────────────────────────────────
 
-# --- 2. CẤU HÌNH TRÌNH DUYỆT ---
-HEADLESS_MODE = False      
-LOAD_IMAGES = True         
+# M?c tiêu content hàng tháng
+CONTENT_GOAL_MONTHLY = 30          # 30 bài/tháng: blog, video, social, review
+CONTENT_FOCUS = "lam dep"          # Ngách chính
+TARGET_URL = "https://nankybeauty.com/"   # Website m?c tiêu
 
-VIEWPORT_SIZE = {"width": 1920, "height": 1080} 
+# AI Content Generation
+CONTENT_MODEL = "qwen3:30b-a3b"    # Model cho sinh content (ho?c "deepseek-chat")
 
-# --- 3. CẤU HÌNH GIẢ LẬP THIẾT BỊ ---
-DEVICE_NAME = "Desktop" 
+# ────────────────────────────────────────────────────────────────────────────
+# PH?N B: CHI?N L??C BACKLINK (D?I V?I AUTOMATION)
+# ────────────────────────────────────────────────────────────────────────────
 
-# [CẬP NHẬT] Thêm lựa chọn Random
+BACKLINK_GOAL_MONTHLY = 20         # 20 backlink/tháng
+BACKLINK_MIN_DA = 20               # Minimum Domain Authority
+
+# ────────────────────────────────────────────────────────────────────────────
+# PH?N C: T?I ?U K? THU?T & AUTOMATION (20%)
+# ────────────────────────────────────────────────────────────────────────────
+
+# Proxy
+PROXY_LIST = []
+
+# Browser
+HEADLESS_MODE = False
+LOAD_IMAGES = True
+VIEWPORT_SIZE = {"width": 1920, "height": 1080}
+
+# Device — H? tr? mobile emulation
+# M?c d?nh "Random Mobile 70" = 70% mobile, 30% desktop
+DEVICE_NAME = "Random Mobile 70 (70% mobile, 30% desktop)"
 SUPPORTED_DEVICES = [
-    "Desktop (Mặc định)",
-    "Random (Ngẫu nhiên mọi loại)", # <-- Mới
-    "Random Mobile (Chỉ điện thoại)", # <-- Mới
-    "iPhone 14 Pro",
-    "iPhone 14 Pro Max",
-    "iPhone 13 Mini",
-    "Pixel 7",
-    "Pixel 5",
-    "Samsung Galaxy S22",
-    "iPad Pro 11"
+    "Desktop (M?c ??nh)",
+    "Random (Ng?u nhiên m?i lo?i)",
+    "Random Mobile (Ch? ?i?n tho?i)",
+    "Random Mobile 70 (70% mobile, 30% desktop)",
+    "iPhone 14 Pro", "iPhone 14 Pro Max", "iPhone 13 Mini",
+    "Pixel 7", "Pixel 5", "Samsung Galaxy S22",
+    "iPad Pro 11",
 ]
 
-# --- 4. CẤU HÌNH THỜI GIAN ON-SITE ---
-DURATION_MIN = 60
-DURATION_MAX = 120
-TEST_DURATION = 60 
+# Android Emulator (ADB) — t?t m?c d?nh, b?t n?u có ?i?n tho?i ?o
+ANDROID_EMULATOR_ENABLE = False
+ANDROID_EMULATOR_PORT = 5554  # Port m?c d?nh c?a Android Emulator
 
-# --- 5. CẤU HÌNH TREO MÁY (LOOP MODE) --- [MỚI]
-LOOP_ENABLE = False        # Có chạy lặp lại theo thời gian không?
-LOOP_DURATION = 60         # Tổng thời gian treo tool (Phút)
+# Th?i gian on-site (gi?i h?n ?? tránh pattern b?t th??ng)
+DURATION_MIN = 45                  # Gi?m xu?ng 45s ?? t? nhiên h?n
+DURATION_MAX = 180                 # T?ng lên 180s ?? có phân tán
+TEST_DURATION = 60
 
-# --- 6. CẤU HÌNH NUÔI NICK ---
-WARMUP_ENABLE = False      
-WARMUP_YOUTUBE = True      
-WARMUP_NEWS = True         
-WARMUP_WIKIPEDIA = True    
+# Gi?i h?n t?n su?t — TRÁNH B? GOOGLE PHÁT HI?N
+MAX_SESSIONS_PER_DAY = 25          # T?i ?a 25 session/ngày (không ph?i 100+)
+MIN_INTERVAL_BETWEEN_SESSIONS = 300 # 5 phút gi?a các session
+
+# Loop (ch? b?t khi c?n)
+LOOP_ENABLE = False
+LOOP_DURATION_MINUTES = 60
+ALWAYS_NEW_USER = True
+
+# Warm-up
+WARMUP_ENABLE = True
+WARMUP_YOUTUBE = True
+WARMUP_NEWS = True
+WARMUP_WIKIPEDIA = True
 WARMUP_SHOPPING = True
+WARMUP_FACEBOOK = True
+WARMUP_INSTAGRAM = True
+
+# Traffic — t?i ?u t? nhiên, tránh phát hi?n
+TRAFFIC_MODE = "search"  # "direct" | "search" | "aio" | "mix"
+
+# Stagger: m?i lu?ng cách nhau 5-20s thay vì kh?i ??ng ?ng lo?t
+THREAD_STAGGER_MIN = 5        # Giây t?i thi?u gi?a các lu?ng khi kh?i ??ng
+THREAD_STAGGER_MAX = 25
+
+# Ngh? ng?u nhiên gi?a các session trong cùng 1 lu?ng
+REST_BETWEEN_SESSIONS_MIN = 10   # Giây
+REST_BETWEEN_SESSIONS_MAX = 45
+
+# Gi? l?p gi? cao ?i?m (peak hours)
+PEAK_HOURS_ENABLE = True          # Ch?y nhi?u h?n vào gi? cao ?i?m
+PEAK_HOURS = [(9, 11), (14, 16), (19, 22)]  # Khung gi? VN
+SEO_KEYWORDS = [
+    "nối mi thủ đức",
+    "eyelash extensions ho chi minh city",
+    "uốn mi thủ đức",
+    "best eyelashes near me",
+    "eyelash extensions ho chi minh",
+    "eyelash extension near me",
+    "chuyên bán dụng cụ nối mi ở tphcm",
+    "lash extensions near me",
+    "mi wispy là gì",
+    "dụng cụ nối mi giá rẻ tphcm",
+    "nối mi quận 2",
+    "nối mi thảo điền",
+    "uốn mi quận 2",
+    "nối mi gần đây",
+    "nối mi trần não",
+    "uốn mi gần đây",
+    "eyelashes near me",
+    "eyelash extensions distric 2",
+]
+
+# AI Engine
+OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "qwen3:30b-a3b"
+
+# Hành vi nâng cao (gi?m thi?u r?i ro)
+POGO_STICK_ENABLE = False          # T?T pogo-stick — nguy c? cao
+POGO_STICK_MAX = 0
+WARMUP_SEARCH_ENABLE = True        # B?T warmup search — traffic t? search
+KEYWORD_VARIATION_ENABLE = True     # B?T keyword variation
+THIRD_PAGE_ENABLE = False           # T?T third page — d? b? phát hi?n
+THIRD_PAGE_CHANCE = 0

@@ -6,3 +6,9 @@ dist/
 venv/
 .env
 .DS_Store
+
+# Generated
+profiles/
+session_state.json
+*.log
+_quick_test.py
