@@ -31,7 +31,7 @@ async def auto_close_popups(page: Page):
 async def click_cta_buttons(page: Page) -> bool:
     cta_selectors = [
         # Text-based (Vietnamese first)
-        "a:has-text('Xem them')",
+        "a:has-text('Xem thêm')",
         "a:has-text('Xem chi tiet')",
         "a:has-text('Dat hang')",
         "a:has-text('Dat mua')",
@@ -46,7 +46,7 @@ async def click_cta_buttons(page: Page) -> bool:
         "a:has-text('Tim hieu')",
         "a:has-text('Doc them')",
         # Buttons
-        "button:has-text('Xem them')",
+        "button:has-text('Xem thêm')",
         "button:has-text('Dat hang')",
         "button:has-text('Mua ngay')",
         "button:has-text('Add to Cart')",

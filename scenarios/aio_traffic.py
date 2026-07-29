@@ -3,6 +3,7 @@ scenarios/aio_traffic.py — AIO traffic: hoi AI, roi search Google + click targ
 """
 import asyncio
 import random
+from urllib.parse import quote
 from playwright.async_api import Page
 from utils.interactions import human_scroll, random_sleep
 
@@ -31,7 +32,7 @@ async def dismiss_popups(page: Page):
             if await btn.is_visible(timeout=500):
                 await btn.click()
                 await asyncio.sleep(0.5)
-        except:
+        except Exception:
             pass
 
 async def find_and_type(page: Page, text: str) -> bool:
@@ -43,7 +44,7 @@ async def find_and_type(page: Page, text: str) -> bool:
                 await asyncio.sleep(1)
                 await page.keyboard.type(text, delay=random.randint(40, 80))
                 return True
-        except:
+        except Exception:
             pass
     return False
 
@@ -78,31 +79,39 @@ async def run_aio_session(page: Page):
     # Step 2: Search Google + click target
     print(f"   [AIO] Step 2: Search Google -> {target_url}")
     try:
-        search_q = target_url.replace("https://", "").replace("http://", "").replace("/", " ")
-        await page.goto(f"https://www.google.com/search?q={search_q.replace(' ', '+')}",
+        # Xay dung search query tu URL: "nankybeauty.com" hoac "topdev.vn nhan-noi-mi"
+        search_query = target_url.replace("https://", "").replace("http://", "").replace("/", " ").strip()
+        encoded_query = quote(search_query)
+        await page.goto(f"https://www.google.com/search?q={encoded_query}",
                        wait_until="domcontentloaded", timeout=30000)
         await asyncio.sleep(3)
 
-        # Tim link den target site
-        target_domain = target_url.replace("https://", "").replace("http://", "").split("/")[0]
-        links = await page.locator("a").all()
+        # Tim link den target site (dung match chinh xac hon)
         clicked = False
+        links = await page.locator(f"a[href*='{target_url.lower()}']").all()
+        if not links and "/" in target_url:
+            # Fallback: search bang domain path
+            domain_part = target_url.replace("https://", "").replace("http://", "").split("/")[0]
+            links = await page.locator(f"a[href*='{domain_part.lower()}']").all()
+        else:
+            domain_part = target_url
+
         for link in links:
             try:
                 href = await link.get_attribute("href")
-                if href and target_domain in href.lower():
+                if href and target_url.lower() in href.lower():
                     await link.scroll_into_view_if_needed()
                     await asyncio.sleep(0.5)
                     await link.click()
                     await asyncio.sleep(3)
-                    print(f"   [AIO] Da click: {target_domain}")
+                    print(f"   [AIO] Da click: {target_url}")
                     clicked = True
                     break
-            except:
+            except Exception:
                 pass
 
         if not clicked:
-            print(f"   [AIO] Khong tim thay link {target_domain} trong kq Google")
+            print(f"   [AIO] Khong tim thay link {target_url} trong kq Google")
             await human_scroll(page, duration=random.randint(10, 15))
 
     except Exception as e:

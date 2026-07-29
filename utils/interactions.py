@@ -106,15 +106,16 @@ async def click_random_internal_link(page: Page):
                 await human_move(page, center_x, center_y)
                 
                 await asyncio.sleep(random.uniform(0.2, 0.5))
-                await target.click()
+                await target.click(force=True)
                 print(f"   [+] 👆 Click: {txt.strip()[:20]}...")
                 return True
         return False
     except Exception:
         return False
-    
-    # --- [VŨ KHÍ MỚI]: TÍCH HỢP AI OLLAMA LOCAL ---
+
+
 async def get_semantic_link_choice(current_keyword: str, links_data: list) -> int:
+    """Gọi Local Ollama (qwen2.5-coder:7b) để chọn link ngữ nghĩa"""
     """Gọi Local Ollama (qwen2.5-coder:7b) để chọn link ngữ nghĩa"""
     url = "http://localhost:11434/api/generate"
     
@@ -201,7 +202,8 @@ async def click_semantic_internal_link(page: Page, keyword: str):
             
             await asyncio.sleep(random.uniform(0.2, 0.5))
             await target.click(force=True)
-            print(f"   [+] 👆 Click Ngữ Nghĩa: {txt[:40].replace('\n', ' ')}...")
+            display_txt = txt[:40].replace('\n', ' ')
+            print(f"   [+] 👆 Click Ngữ Nghĩa: {display_txt}...")
             return True
             
         return False

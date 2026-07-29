@@ -252,7 +252,9 @@ class TrafficBotUI(ctk.CTk):
 
         ctk.CTkLabel(t, text="Thiết bị giả lập:").grid(row=0, column=0, sticky="w", padx=20, pady=(20, 4))
         self.combo_device = ctk.CTkComboBox(t, values=cfg.SUPPORTED_DEVICES, width=260)
-        self.combo_device.set("Desktop (Mặc định)")
+        # Dùng giá trị từ cfg.DEVICE_NAME, fallback về item đầu tiên trong list
+        default_device = cfg.DEVICE_NAME if cfg.DEVICE_NAME in cfg.SUPPORTED_DEVICES else cfg.SUPPORTED_DEVICES[0]
+        self.combo_device.set(default_device)
         self.combo_device.grid(row=1, column=0, sticky="w", padx=20, pady=(0, 20))
 
         self.sw_headless = ctk.CTkSwitch(t, text="Chạy Ngầm (Headless Mode)")
@@ -535,11 +537,13 @@ class TrafficBotUI(ctk.CTk):
 
         dev = self.combo_device.get()
         cfg.DEVICE_NAME   = dev
-        cfg.VIEWPORT_SIZE = {"width": 1920, "height": 1080} if dev == "Desktop" else None
+        cfg.VIEWPORT_SIZE = {"width": 1920, "height": 1080} if "Desktop" in dev else {"width": 390, "height": 844}
 
         try:
-            cfg.DURATION_MIN = int(self.entry_min_time.get())
-            cfg.DURATION_MAX = int(self.entry_max_time.get())
+            min_val = int(self.entry_min_time.get())
+            max_val = int(self.entry_max_time.get())
+            cfg.DURATION_MIN = min(min_val, max_val)
+            cfg.DURATION_MAX = max(min_val, max_val)
         except ValueError:
             cfg.DURATION_MIN, cfg.DURATION_MAX = 60, 120
 
@@ -555,6 +559,8 @@ class TrafficBotUI(ctk.CTk):
         cfg.WARMUP_NEWS      = bool(self.chk_news.get())
         cfg.WARMUP_WIKIPEDIA = bool(self.chk_wiki.get())
         cfg.WARMUP_SHOPPING  = bool(self.chk_shop.get())
+        cfg.WARMUP_FACEBOOK  = bool(self.chk_fb.get())
+        cfg.WARMUP_INSTAGRAM = bool(self.chk_ig.get())
 
         # AI Engine
         cfg.OLLAMA_URL   = self.entry_ollama_url.get().strip()
@@ -624,6 +630,8 @@ class TrafficBotUI(ctk.CTk):
                     ("news",     cfg.WARMUP_NEWS),
                     ("wiki",     cfg.WARMUP_WIKIPEDIA),
                     ("shopping", cfg.WARMUP_SHOPPING),
+                    ("facebook", cfg.WARMUP_FACEBOOK),
+                    ("instagram", cfg.WARMUP_INSTAGRAM),
                 ] if flag]
                 if modes:
                     from scenarios.warmup import run_warmup
@@ -647,8 +655,7 @@ class TrafficBotUI(ctk.CTk):
                         from scenarios.aio_traffic import run_aio_session
                         await run_aio_session(page)
                     else:
-                        from scenarios.aio_traffic import run_aio_session as fallback
-                        await fallback(page)
+                        await run_deep_session(page)
                 else:
                     await run_deep_session(page)
 

@@ -11,45 +11,96 @@ except ImportError:
     stealth_async = None
 
 
-# ─── ANTI-DETECT: Script chống phát hiện Playwright ─────────────────────────
-_ANTI_DETECT_SCRIPT = """
+# ─── DEVICE FINGERPRINT MAP ────────────────────────────────────────────────────
+# GPU vendor/renderer, CPU cores, RAM (GB), platform string cho từng thiết bị
+_DEVICE_FINGERPRINTS = {
+    "iPhone 14 Pro": {
+        "gpu_vendor": "Apple Inc.",
+        "gpu_renderer": "Apple GPU",
+        "cores": 6,
+        "ram": 6,
+        "platform": "iPhone",
+        "has_chrome": False,
+        "has_plugins": False,
+    },
+    "iPhone 14 Pro Max": {
+        "gpu_vendor": "Apple Inc.",
+        "gpu_renderer": "Apple GPU",
+        "cores": 6,
+        "ram": 6,
+        "platform": "iPhone",
+        "has_chrome": False,
+        "has_plugins": False,
+    },
+    "iPhone 13 Mini": {
+        "gpu_vendor": "Apple Inc.",
+        "gpu_renderer": "Apple GPU",
+        "cores": 6,
+        "ram": 4,
+        "platform": "iPhone",
+        "has_chrome": False,
+        "has_plugins": False,
+    },
+    "Pixel 7": {
+        "gpu_vendor": "Google",
+        "gpu_renderer": "Google Tensor (ARM Mali-G710)",
+        "cores": 8,
+        "ram": 8,
+        "platform": "Linux armv8l",
+        "has_chrome": True,
+        "has_plugins": True,
+    },
+    "Pixel 5": {
+        "gpu_vendor": "Qualcomm",
+        "gpu_renderer": "Adreno 620",
+        "cores": 8,
+        "ram": 8,
+        "platform": "Linux armv8l",
+        "has_chrome": True,
+        "has_plugins": True,
+    },
+    "Samsung Galaxy S22": {
+        "gpu_vendor": "Samsung",
+        "gpu_renderer": "Xclipse 920",
+        "cores": 8,
+        "ram": 8,
+        "platform": "Linux armv8l",
+        "has_chrome": True,
+        "has_plugins": True,
+    },
+    "iPad Pro 11": {
+        "gpu_vendor": "Apple Inc.",
+        "gpu_renderer": "Apple GPU",
+        "cores": 8,
+        "ram": 8,
+        "platform": "iPad",
+        "has_chrome": False,
+        "has_plugins": False,
+    },
+    # Fallback cho mobile nếu không tìm thấy device cụ thể
+    "Mobile fallback": {
+        "gpu_vendor": "ARM",
+        "gpu_renderer": "Mali-G76",
+        "cores": 8,
+        "ram": 6,
+        "platform": "Linux armv8l",
+        "has_chrome": True,
+        "has_plugins": True,
+    },
+}
+
+
+# ─── BASE ANTI-DETECT: dùng chung cho cả Desktop & Mobile ──────────────────
+_BASE_SCRIPT = """
 // 1. Che webdriver
 Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
 
-// 2. Che Chrome runtime (phát hiện automation)
-window.chrome = {
-    runtime: {},
-    loadTimes: function() {},
-    csi: function() {},
-    app: {},
-    webstore: {}
-};
-
-// 3. Che plugins (trình duyệt automation thường 0 plugin)
-Object.defineProperty(navigator, 'plugins', {
-    get: () => [1, 2, 3, 4, 5].map(() => ({name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer'})),
-});
-
-// 4. Che languages
+// 2. Che languages
 Object.defineProperty(navigator, 'languages', {
     get: () => ['vi-VN', 'vi', 'en-US', 'en'],
 });
 
-// 5. Thêm deviceMemory, hardwareConcurrency thật
-Object.defineProperty(navigator, 'deviceMemory', {get: () => [4, 8][Math.floor(Math.random() * 2)]});
-Object.defineProperty(navigator, 'hardwareConcurrency', {get: () => [4, 6, 8, 12][Math.floor(Math.random() * 4)]});
-
-// 6. WebGL - chặn canvas fingerprinting
-try {
-    const getParameter = WebGLRenderingContext.prototype.getParameter;
-    WebGLRenderingContext.prototype.getParameter = function(parameter) {
-        if (parameter === 37445) return 'Intel Inc.';
-        if (parameter === 37446) return 'Intel Iris OpenGL Engine';
-        return getParameter(parameter);
-    };
-} catch(e) {}
-
-// 7. Che permissions (tránh navigator.permissions.query mismatch)
+// 3. Che permissions (tránh navigator.permissions.query mismatch)
 try {
     const originalQuery = navigator.permissions.query;
     navigator.permissions.query = (params) => (
@@ -59,15 +110,13 @@ try {
     );
 } catch(e) {}
 
-// 8. Thêm screen độ phân giải phổ biến (cho Desktop)
+// 4. Thêm screen properties
 try {
-    if (!navigator.maxTouchPoints) {
-        Object.defineProperty(screen, 'colorDepth', {get: () => 24});
-        Object.defineProperty(screen, 'pixelDepth', {get: () => 24});
-    }
+    Object.defineProperty(screen, 'colorDepth', {get: () => 24});
+    Object.defineProperty(screen, 'pixelDepth', {get: () => 24});
 } catch(e) {}
 
-// 9. Xoá dấu vết của Playwright trong stack trace
+// 5. Xoá dấu vết của Playwright trong stack trace
 try {
     const oldToString = Error.prototype.toString;
     Error.prototype.toString = function() {
@@ -75,6 +124,119 @@ try {
     };
 } catch(e) {}
 """
+
+
+# ─── DESKTOP SCRIPT ─────────────────────────────────────────────────────────
+_DESKTOP_SCRIPT = """
+// 6. Che Chrome runtime
+window.chrome = {
+    runtime: {},
+    loadTimes: function() {},
+    csi: function() {},
+    app: {},
+    webstore: {}
+};
+
+// 7. Che plugins (desktop Chrome có internal plugins)
+Object.defineProperty(navigator, 'plugins', {
+    get: () => [1, 2, 3, 4, 5].map(() => ({name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer'})),
+});
+
+// 8. WebGL - Desktop hay dùng Intel
+try {
+    const getParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(parameter) {
+        if (parameter === 37445) return 'Intel Inc.';
+        if (parameter === 37446) return 'Intel Iris OpenGL Engine';
+        return getParameter(parameter);
+    };
+} catch(e) {}
+
+// 9. deviceMemory, hardwareConcurrency cho desktop
+Object.defineProperty(navigator, 'deviceMemory', {get: () => [4, 8][Math.floor(Math.random() * 2)]});
+Object.defineProperty(navigator, 'hardwareConcurrency', {get: () => [4, 6, 8, 12][Math.floor(Math.random() * 4)]});
+"""
+
+
+# ─── MOBILE SCRIPT BUILDER ──────────────────────────────────────────────────
+def _build_mobile_script(device_name: str) -> str:
+    """Tạo anti-detect script cho mobile với fingerprint đúng theo thiết bị."""
+    fp = _DEVICE_FINGERPRINTS.get(device_name) or _DEVICE_FINGERPRINTS["Mobile fallback"]
+
+    gpu_vendor = fp["gpu_vendor"]
+    gpu_renderer = fp["gpu_renderer"]
+    cores = fp["cores"]
+    ram = fp["ram"]
+    platform = fp["platform"]
+    has_chrome = "true" if fp["has_chrome"] else "false"
+    has_plugins = fp["has_plugins"]
+
+    extra_js = ""
+
+    # Chrome runtime: chỉ inject nếu thiết bị là Android (có Chrome)
+    if fp["has_chrome"]:
+        extra_js += """
+// 6a. Che Chrome runtime (Android Chrome có object này)
+window.chrome = {
+    runtime: {},
+    loadTimes: function() {},
+    csi: function() {},
+    app: {},
+    webstore: {}
+};
+"""
+    else:
+        # iOS Safari KHÔNG có window.chrome — xoá nếu tồn tại
+        extra_js += """
+// 6b. iOS Safari không có window.chrome — đảm bảo undefined
+Object.defineProperty(window, 'chrome', {
+    get: () => undefined,
+    configurable: true,
+});
+"""
+
+    # Plugins: iOS = 0 plugins, Android = 5 plugins
+    if has_plugins:
+        extra_js += """
+// 7a. Plugins: Android Chrome có vài internal plugins
+Object.defineProperty(navigator, 'plugins', {
+    get: () => [1, 2, 3, 4, 5].map(() => ({name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer'})),
+});
+"""
+    else:
+        extra_js += """
+// 7b. iOS Safari không có plugins
+Object.defineProperty(navigator, 'plugins', {get: () => [], configurable: true});
+"""
+
+    mobile_specific = f"""
+// 8. Platform: {platform} (theo thiết bị)
+Object.defineProperty(navigator, 'platform', {{get: () => '{platform}', configurable: true}});
+
+// 9. WebGL - GPU đúng: {gpu_vendor} / {gpu_renderer}
+try {{
+    const getParam = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(parameter) {{
+        if (parameter === 37445) return '{gpu_vendor}';
+        if (parameter === 37446) return '{gpu_renderer}';
+        return getParam(parameter);
+    }};
+}} catch(e) {{}}
+
+// 10. deviceMemory, hardwareConcurrency chuẩn theo thiết bị ({ram}GB, {cores} cores)
+Object.defineProperty(navigator, 'deviceMemory', {{get: () => {ram}}});
+Object.defineProperty(navigator, 'hardwareConcurrency', {{get: () => {cores}}});
+
+// 11. maxTouchPoints: mobile luôn có touch
+Object.defineProperty(navigator, 'maxTouchPoints', {{get: () => 5}});
+"""
+
+    return _BASE_SCRIPT + extra_js + mobile_specific
+
+
+def _build_desktop_script() -> str:
+    """Tạo anti-detect script cho desktop (Intel Iris OK)."""
+    return _BASE_SCRIPT + _DESKTOP_SCRIPT
 
 
 class BrowserManager:
@@ -145,7 +307,7 @@ class BrowserManager:
             selected_device = _random.choice(_MOBILES)
 
         is_desktop = False
-        if selected_device == "Desktop":
+        if "Desktop" in selected_device:
             is_desktop = True
 
         if not is_desktop:
@@ -163,7 +325,7 @@ class BrowserManager:
             ua_vn = (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
+                "Chrome/126.0.0.0 Safari/537.36"
             )
             # Dùng fake_useragent nhưng filter lấy Chrome Windows
             if self.ua:
@@ -221,7 +383,13 @@ class BrowserManager:
         context = await browser.new_context(**context_opts)
 
         # ─── TIÊM SCRIPT CHỐNG PHÁT HIỆN ────────────────────────────────────
-        await context.add_init_script(_ANTI_DETECT_SCRIPT)
+        if is_desktop:
+            script = _build_desktop_script()
+            print(f"   [🛡️] Anti-detect: Desktop (Intel Iris)")
+        else:
+            script = _build_mobile_script(selected_device)
+            print(f"   [🛡️] Anti-detect: Mobile ({selected_device} — {_DEVICE_FINGERPRINTS.get(selected_device, {}).get('gpu_renderer', 'unknown')})")
+        await context.add_init_script(script)
 
         page = await context.new_page()
         if stealth_async:

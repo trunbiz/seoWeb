@@ -17,7 +17,7 @@ CONTENT_TIMEOUT = 120
 # M?u l?ch content 30 ngày cho ngành làm ?p (n?i mi, u?n mi)
 DEFAULT_30D_PLAN = [
     # Tu?n 1: Gi?i thi?u & Giáo d?c
-    {"day": 1,  "type": "blog",   "keyword": "n?i mi t? nhiên là gì",              "target": "Gi?i thích khái ni?m, ai nên làm"},
+    {"day": 1,  "type": "blog",   "keyword": "nối mi tự nhiên là gì",              "target": "Gi?i thích khái ni?m, ai nên làm"},
     {"day": 2,  "type": "blog",   "keyword": "các lo?i n?i mi ph? bi?n",           "target": "So sánh 5-7 lo?i n?i mi"},
     {"day": 3,  "type": "social", "keyword": "n?i mi ???c bao lâu",                "target": "Infographic v? ?? b?n n?i mi"},
     {"day": 4,  "type": "blog",   "keyword": "n?i mi có h?i mi không",             "target": "Gi?i ?áp lo l?ng th??ng g?p"},
@@ -35,7 +35,7 @@ DEFAULT_30D_PLAN = [
     {"day": 14, "type": "review", "keyword": "khách hàng n?i ti?ng dùng d?ch v?",  "target": "Case study: khách hàng th?t"},
 
     # Tu?n 3: M? r?ng & T?o authority
-    {"day": 15, "type": "blog",   "keyword": "d?ch v? làm ?p m?t tr?n gói",        "target": "Gói combo: mi + mày + m?t"},
+    {"day": 15, "type": "blog",   "keyword": "dịch vụ làm đẹp mắt tr?n gói",        "target": "Gói combo: mi + mày + m?t"},
     {"day": 16, "type": "blog",   "keyword": "phong cách làm ?p Hàn Qu?c hot 2026","target": "Xu h??ng làm ?p Hàn Qu?c"},
     {"day": 17, "type": "social", "keyword": "h?c n?i mi ? ?âu",                   "target": "Gi?i thi?u khóa h?c t?i topdev"},
     {"day": 18, "type": "blog",   "keyword": "d?ch v? n?i mi cho cô dâu",           "target": "Gói c??i tr?n gói"},

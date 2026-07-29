@@ -4,9 +4,8 @@ import re
 from urllib.parse import unquote
 from playwright.async_api import Page
 
-from utils.interactions import human_scroll, click_semantic_internal_link
-from utils.onsite_interactions import rich_on_site_interaction
-from tests.test_direct_access import auto_close_popups
+from utils.interactions import human_scroll
+from utils.onsite_interactions import rich_on_site_interaction, auto_close_popups
 from utils.ai_engine import (
     generate_user_persona,
     generate_search_behavior,
@@ -92,8 +91,24 @@ async def _accept_google_consent(page: Page):
 
 
 def _is_captcha(page: Page) -> bool:
+    """Kiem tra CAPTCHA ca tren URL va DOM elements."""
+    # Kiem tra URL
     url = page.url
-    return any(k in url for k in ("/sorry/", "sorry/index", "recaptcha", "captcha"))
+    if any(k in url for k in ("/sorry/", "sorry/index", "recaptcha", "captcha")):
+        return True
+    # Kiem tra element tren trang (JS CAPTCHA popup khong doi URL)
+    try:
+        captcha_selectors = [
+            "iframe[src*='recaptcha']", "div[class*='g-recaptcha']",
+            "div[class*='captcha']", "#captcha", "[aria-label*='captcha']",
+        ]
+        for sel in captcha_selectors:
+            el = page.locator(sel).first
+            if el and el.is_visible(timeout=500):
+                return True
+    except Exception:
+        pass
+    return False
 
 
 def _unwrap_google_redirect(href: str) -> str:
@@ -369,51 +384,17 @@ async def _scroll_serp_like_human(page: Page, persona: PersonaConfig, count: int
 
 async def _verify_on_target(page: Page, domain_target: str) -> bool:
     await asyncio.sleep(1.5)
-    on_target = domain_target in page.url
+    # Parse domain tu URL, tranh false-positive voi substring match
+    from urllib.parse import urlparse
+    page_domain = urlparse(page.url).netloc.lower().lstrip("www.")
+    target_clean = domain_target.lower().lstrip("www.")
+    on_target = page_domain == target_clean or page_domain.endswith("." + target_clean)
     if not on_target:
-        print(f"   [⚠️] Điều hướng sai — URL thực: {page.url[:80]}")
+        print(f"   [⚠️] Điều hướng sai — URL: {page.url[:80]}, target: {target_clean}")
     return on_target
 
 
 # ─── helpers: on-site ────────────────────────────────────────────────────────
-
-async def _post_comment_with_persona(page: Page, persona: PersonaConfig):
-    """[TAT] Comment tu dong — rui ro Google phat."""
-    try:
-        paragraphs = await page.locator("p").all_inner_texts()
-        full_text = " ".join(paragraphs)
-        if len(full_text) < 100:
-            print("   [-] Bài quá ngắn, bỏ qua comment.")
-            return
-
-        print("   [🧠] AI đang soạn bình luận theo nhân cách...")
-        comment_text = await generate_smart_comment(full_text, persona)
-        print(f"   [💬] Bình luận: '{comment_text}'")
-
-        comment_box = page.locator(
-            "textarea#comment, textarea[name='comment'], textarea.comment-form-textarea"
-        ).first
-        if not await comment_box.is_visible():
-            print("   [-] Không tìm thấy ô bình luận.")
-            return
-
-        await comment_box.scroll_into_view_if_needed()
-        await asyncio.sleep(random.uniform(0.8, 1.5))
-        await comment_box.click()
-        await asyncio.sleep(random.uniform(0.3, 0.6))
-        await _type_with_persona(page, comment_text, persona)
-        await asyncio.sleep(random.uniform(1.0, 2.0))
-
-        submit_btn = page.locator("input#submit, button#submit, button.submit").first
-        if await submit_btn.is_visible():
-            await submit_btn.click()
-            print("   [✅] Đã gửi Comment!")
-            await asyncio.sleep(4)
-        else:
-            print("   [-] Không tìm thấy nút Submit.")
-    except Exception as e:
-        print(f"   [-] Bỏ qua bước Comment: {e}")
-
 
 # ─── main flow ───────────────────────────────────────────────────────────────
 
@@ -472,11 +453,13 @@ async def run_search_flow(page: Page):
         await asyncio.sleep(random.uniform(0.3, 0.7))
 
         # Thử từ khóa biến thể trước (25% theo behavior)
+        typed_related = False
         if behavior.get("try_related_first", False):
-            await _try_related_keyword_first(page, keyword, persona)
+            typed_related = await _try_related_keyword_first(page, keyword, persona)
 
-        # Gõ từ khóa thật
-        await _type_with_persona(page, keyword, persona)
+        # Gõ từ khóa thật (nếu chưa gõ biến thể)
+        if not typed_related:
+            await _type_with_persona(page, keyword, persona)
         await _handle_autocomplete(page)  # 40% dismiss dropdown
         await page.keyboard.press("Enter")
         await page.wait_for_load_state("domcontentloaded")

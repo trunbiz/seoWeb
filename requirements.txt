@@ -1,3 +1,5 @@
 playwright
 playwright-stealth
-asyncio
+customtkinter
+requests
+fake-useragent

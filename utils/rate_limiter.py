@@ -30,19 +30,37 @@ def _save_state(state: dict):
     with open(STATE_FILE, "w") as f:
         json.dump(state, f)
 
-def can_run_session(max_per_day: int = 99999, min_interval: int = 0) -> tuple[bool, str]:
-    """Luôn cho phép chạy — đã tắt giới hạn.
+def can_run_session(max_per_day: int = 25, min_interval: int = 300) -> tuple[bool, str]:
+    """Kiểm tra có được chạy session mới không.
     Args:
-        max_per_day: Mặc định 99999 (không giới hạn)
-        min_interval: Mặc định 0s (không cooldown)
+        max_per_day: Số session tối đa/ngày (mặc định 25)
+        min_interval: Giây tối thiểu giữa 2 session (mặc định 300)
     Returns:
-        (True, "")
+        (True, "") nếu được phép, (False, "lý do") nếu bị chặn
     """
-    _load_state()  # vẫn load để reset file nếu cần
+    state = _load_state()
+    today = date.today().isoformat()
+
+    # Nếu chưa có dữ liệu hôm nay → OK
+    if state["date"] != today:
+        return True, ""
+
+    # Check giới hạn ngày
+    if state["count"] >= max_per_day:
+        next_day = "ngày mai"
+        return False, f"Đã đạt giới hạn {max_per_day} session/ngày. Chờ {next_day}."
+
+    # Check cooldown giữa các session
+    if state["last_session"] > 0:
+        elapsed = time.time() - state["last_session"]
+        if elapsed < min_interval:
+            wait = int(min_interval - elapsed)
+            return False, f"Cooldown: chờ {wait}s nữa ({min_interval}s giữa các session)."
+
     return True, ""
 
 def mark_session_run():
-    """Ghi nh?n m?t session ?ã ch?y."""
+    """Ghi nhận một session đã chạy."""
     today = date.today().isoformat()
     state = _load_state()
 
@@ -54,7 +72,7 @@ def mark_session_run():
     _save_state(state)
 
 def get_today_summary() -> dict:
-    """Tr? v? th?ng kê hôm nay."""
+    """Trả về thống kê hôm nay."""
     state = _load_state()
     today = date.today().isoformat()
 

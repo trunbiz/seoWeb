@@ -1,27 +1,14 @@
 import asyncio
 import random
 from playwright.async_api import Page
-from utils.interactions import human_scroll, click_semantic_internal_link, human_typing
-from utils.onsite_interactions import rich_on_site_interaction
-# [NÂNG CẤP]: Import bộ não AI
+from utils.interactions import human_scroll
+from utils.onsite_interactions import rich_on_site_interaction, auto_close_popups
 from utils.ai_engine import generate_user_persona
 import config.settings as cfg
 
 REFERERS = [
     "https://www.google.com.vn/", "https://www.google.com/", "https://www.bing.com/", "https://m.facebook.com/"
 ]
-
-async def auto_close_popups(page: Page):
-    try:
-        close_selectors = [".close-popup", ".popup-close", "#close-btn", ".close", "[aria-label='Close']", ".fancybox-close"]
-        for selector in close_selectors:
-            elements = await page.locator(selector).all()
-            for el in elements:
-                if await el.is_visible():
-                    await el.click(force=True)
-                    print("   [!] Đã tự động đóng một popup/quảng cáo.")
-                    await asyncio.sleep(1)
-    except: pass
 
 async def auto_fake_conversion(page: Page):
     """[TẮT] Comment tự động — nguy cơ Google phạt nặng.

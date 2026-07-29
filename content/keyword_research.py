@@ -18,16 +18,16 @@ SAMPLE_KEYWORDS = [
     {"keyword": "n?i mi ? ?u",          "volume": 8100,  "difficulty": 58, "intent": "commercial"},
 
     # Body terms (volume TB, intent cao)
-    {"keyword": "n?i mi t? nhiên giá bao nhiêu", "volume": 3200, "difficulty": 45, "intent": "transactional"},
+    {"keyword": "nối mi tự nhiên giá bao nhiêu", "volume": 3200, "difficulty": 45, "intent": "transactional"},
     {"keyword": "n?i mi Hàn Qu?c",               "volume": 2900, "difficulty": 48, "intent": "commercial"},
-    {"keyword": "u?n mi ? ?u ?p",                "volume": 2400, "difficulty": 35, "intent": "commercial"},
+    {"keyword": "uốn mi ở đâu đẹp",                "volume": 2400, "difficulty": 35, "intent": "commercial"},
     {"keyword": "n?i mi cho cô dâu",             "volume": 1800, "difficulty": 30, "intent": "transactional"},
     {"keyword": "cách ch?m sóc mi n?i",          "volume": 1600, "difficulty": 28, "intent": "informational"},
     {"keyword": "n?i mi ???c bao lâu",           "volume": 2200, "difficulty": 32, "intent": "informational"},
     {"keyword": "review n?i mi topdev",          "volume": 890,  "difficulty": 12, "intent": "commercial"},
 
     # Long-tail (volume th?p, intent r?t cao)
-    {"keyword": "n?i mi t? nhiên không h? mi t?i salon qu?n 1", "volume": 420, "difficulty": 8, "intent": "transactional"},
+    {"keyword": "nối mi tự nhiên không h? mi t?i salon qu?n 1", "volume": 420, "difficulty": 8, "intent": "transactional"},
     {"keyword": "??a ch? n?i mi ?n tay g?n ??y",               "volume": 380, "difficulty": 10, "intent": "commercial"},
     {"keyword": "n?i mi cho ng??i m?t m?t mí 1 mí",            "volume": 320, "difficulty": 15, "intent": "informational"},
     {"keyword": "cách bi?t n?i mi chu?n hay không chu?n",      "volume": 280, "difficulty": 10, "intent": "informational"},
@@ -36,7 +36,7 @@ SAMPLE_KEYWORDS = [
 # T? khóa d?nh h??ng theo funnel (ph?u chuy?n ??i)
 FUNNEL_KEYWORDS = {
     "TOFU (Nh?n th?c)": [
-        "n?i mi là gì", "n?i mi t? nhiên là gì", "n?i mi có t?t không",
+        "n?i mi là gì", "nối mi tự nhiên là gì", "n?i mi có t?t không",
         "các lo?i n?i mi", "n?i mi Hàn Qu?c vs Nh?t B?n"
     ],
     "MOFU (Cân nh?c)": [

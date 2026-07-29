@@ -35,9 +35,9 @@ VIEWPORT_SIZE = {"width": 1920, "height": 1080}
 # M?c d?nh "Random Mobile 70" = 70% mobile, 30% desktop
 DEVICE_NAME = "Random Mobile 70 (70% mobile, 30% desktop)"
 SUPPORTED_DEVICES = [
-    "Desktop (M?c ??nh)",
-    "Random (Ng?u nhiên m?i lo?i)",
-    "Random Mobile (Ch? ?i?n tho?i)",
+    "Desktop (Mặc định)",
+    "Random (Ngẫu nhiên mọi loại)",
+    "Random Mobile (Chỉ điện thoại)",
     "Random Mobile 70 (70% mobile, 30% desktop)",
     "iPhone 14 Pro", "iPhone 14 Pro Max", "iPhone 13 Mini",
     "Pixel 7", "Pixel 5", "Samsung Galaxy S22",

@@ -1,34 +1,34 @@
 """
-scenarios/warmup.py — Nâng c?p: ch?y nhi?u mode, thêm Facebook, TikTok, cá nhân hóa theo target.
+scenarios/warmup.py — Warmup modes: YouTube, news, wiki, shopping, Facebook, Instagram.
 """
 import asyncio
 import random
 from playwright.async_api import Page
-from utils.interactions import human_scroll, human_move, click_random_internal_link, random_sleep
+from utils.interactions import human_scroll, click_random_internal_link, random_sleep
 
 # ----- DATA -----
 YOUTUBE_KEYWORDS = [
-    "nh?c lofi chill", "nh?c tiktok remix 2024", "review iphone 15",
-    "highlight bóng ?á ngo?i h?ng anh", "h??ng d?n t?p gym",
-    "mèo máy doremon", "son tung mtp", "mrbeast vietsub",
-    "làm ?p t?i nhà", "n?i mi t? nhiên", "ch?m sóc da m?t",
-    "review m? ph?m Hàn Qu?c", "h??ng d?n make-up co b?n"
+    "nhac lofi chill", "nhac tiktok remix 2024", "review iphone 15",
+    "highlight bong da ngoai hang anh", "huong dan tap gym",
+    "meo may doremon", "son tung mtp", "mrbeast vietsub",
+    "lam dep tai nha", "noi mi tu nhien", "cham soc da mat",
+    "review my pham Han Quoc", "huong dan make-up co ban"
 ]
 
 NEWS_SITES = [
     "https://vnexpress.net", "https://dantri.com.vn",
     "https://kenh14.vn", "https://24h.com.vn",
-    "https://phunuvietnam.vn", "https://ella.vn"
+    "https://phunuvietnam.vn", "https://elle.vn"
 ]
 
 SHOPPING_SITES = [
     "https://shopee.vn", "https://tiki.vn", "https://www.lazada.vn"
 ]
 
-SOCIAL_SITES = [
-    ("https://facebook.com", "Facebook"),
-    ("https://www.instagram.com", "Instagram"),
-]
+SOCIAL_SITES = {
+    "facebook": ("https://facebook.com", "Facebook"),
+    "instagram": ("https://www.instagram.com", "Instagram"),
+}
 
 
 async def simulate_typing(page: Page, text: str):
@@ -41,18 +41,19 @@ async def simulate_typing(page: Page, text: str):
 async def handle_consent(page: Page):
     for sel in [
         "button[aria-label*='Accept']", "button[aria-label*='Accept all']",
-        "button:has-text('Accept')", "button:has-text('Cho phép')",
-        "button:has-text('Dong y')", "[aria-label*='Close']", "button:has-text('T?t c?')",
+        "button:has-text('Accept')", "button:has-text('Cho phep')",
+        "button:has-text('Dong y')", "[aria-label*='Close']", "button:has-text('Tat ca')",
     ]:
         try:
             btn = page.locator(sel).first
             if await btn.is_visible(timeout=1000):
                 await btn.click()
                 await asyncio.sleep(1)
-        except: pass
+        except Exception:
+            pass
 
 
-# ----- WARMUP 1: YouTube (tìm video liên quan ??n target n?u có keyword) -----
+# ----- WARMUP 1: YouTube (tim video lien quan) -----
 async def warmup_youtube(page: Page):
     keyword = random.choice(YOUTUBE_KEYWORDS)
     print(f"   [Warmup] YouTube: '{keyword}'")
@@ -74,16 +75,19 @@ async def warmup_youtube(page: Page):
             await page.keyboard.press("Enter")
             await page.wait_for_timeout(3000)
 
-            videos = await page.locator("ytd-video-renderer, ytm-video-with-context-renderer").all()
+            # Chi dung selector ton tai tren youtube.com (khong dung ytm-video)
+            videos = await page.locator("ytd-video-renderer").all()
             if videos:
                 target = videos[random.randint(0, min(len(videos)-1, 2))]
                 await target.scroll_into_view_if_needed()
                 await target.click(force=True)
                 watch_time = random.randint(15, 30)
                 print(f"   [YouTube] Xem {watch_time}s...")
-                start = asyncio.get_event_loop().time()
-                while asyncio.get_event_loop().time() - start < watch_time:
-                    await asyncio.sleep(5)
+                loop = asyncio.get_running_loop()
+                start = loop.time()
+                while loop.time() - start < watch_time:
+                    remain = watch_time - (loop.time() - start)
+                    await asyncio.sleep(min(5, remain))
     except Exception as e:
         print(f"   [-] YouTube: {e}")
         await asyncio.sleep(10)
@@ -99,7 +103,8 @@ async def warmup_wikipedia(page: Page):
         if await click_random_internal_link(page):
             await page.wait_for_load_state("domcontentloaded")
             await human_scroll(page, duration=15)
-    except: pass
+    except Exception:
+        pass
 
 
 # ----- WARMUP 3: Shopping -----
@@ -117,7 +122,8 @@ async def warmup_shopping(page: Page):
             await target.click()
             await page.wait_for_load_state("domcontentloaded")
             await human_scroll(page, duration=random.randint(15, 25))
-    except: pass
+    except Exception:
+        pass
 
 
 # ----- WARMUP 4: News -----
@@ -129,7 +135,8 @@ async def warmup_news(page: Page):
         await human_scroll(page, duration=12)
         if await click_random_internal_link(page):
             await human_scroll(page, duration=18)
-    except: pass
+    except Exception:
+        pass
 
 
 # ----- WARMUP 5: Facebook / Instagram -----
@@ -145,35 +152,30 @@ async def warmup_social(page: Page, url: str, name: str):
         await asyncio.sleep(5)
 
 
-# ----- MAIN: ch?y nhi?u mode -----
+# ----- MAIN: chay nhieu mode -----
 async def run_warmup(page: Page, enabled_modes: list):
     """
-    enabled_modes: list t? UI ['youtube', 'news', 'wiki', 'shopping', 'facebook', 'instagram']
-    N�.c p: ch?y 2-3 mode ng?u nhi�n thay v� ch? 1.
+    enabled_modes: list tu UI ['youtube', 'news', 'wiki', 'shopping', 'facebook', 'instagram']
+    Chay 1-2 mode ngau nhien thay vi tat ca.
     """
     if not enabled_modes:
         return
 
     print("--- [WARMUP START] ---")
 
-    # Th�m Facebook & Instagram n?u ???c b?t
-    extra_modes = []
-    if "facebook" in enabled_modes:
-        extra_modes.append("facebook")
-    if "instagram" in enabled_modes:
-        extra_modes.append("instagram")
-
-    base_modes = [m for m in enabled_modes if m not in ("facebook", "instagram")]
+    # Tach base modes va social modes
+    social_modes = [m for m in enabled_modes if m in SOCIAL_SITES]
+    base_modes = [m for m in enabled_modes if m not in SOCIAL_SITES]
     if not base_modes:
         base_modes = ["youtube", "news"]
 
-    # Quick warmup: chi 1-2 mode (truoc day 2-3 gay cham)
+    # Quick warmup: chi 1-2 mode
     count = min(random.randint(1, 2), len(base_modes))
     selected = random.sample(base_modes, count)
 
-    # Th�m social n?u ???c b?t
-    if extra_modes and random.random() < 0.5:
-        selected.append(random.choice(extra_modes))
+    # Them social neu duoc bat (50%)
+    if social_modes and random.random() < 0.5:
+        selected.append(random.choice(social_modes))
 
     random.shuffle(selected)
 
@@ -182,10 +184,10 @@ async def run_warmup(page: Page, enabled_modes: list):
         elif mode == 'wiki':      await warmup_wikipedia(page)
         elif mode == 'shopping':  await warmup_shopping(page)
         elif mode == 'news':      await warmup_news(page)
-        elif mode == 'facebook':  await warmup_social(page, *SOCIAL_SITES[0])
-        elif mode == 'instagram': await warmup_social(page, *SOCIAL_SITES[1])
+        elif mode in SOCIAL_SITES:
+            await warmup_social(page, *SOCIAL_SITES[mode])
 
-        # Ngh? gi?a c�c mode
+        # Nghi giua cac mode
         await asyncio.sleep(random.randint(3, 6))
 
     print("--- [WARMUP DONE] ---")
