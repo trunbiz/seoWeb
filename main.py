@@ -1,9 +1,16 @@
 """
-SEO2 — Chi?n l??c SEO toàn di?n cho topdev.vn
+ZizaSeo — công cụ lập kế hoạch và kiểm thử traffic
 
 80% Content & Backlink | 20% Automation
 """
 import sys
+import config.settings as cfg
+
+# Windows terminals often default to cp1252, which cannot print Vietnamese.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 def show_strategy():
     """Hi?n th? chi?n l??c t?ng th?."""
@@ -12,7 +19,7 @@ def show_strategy():
     from backlinks.tracker import print_backlink_plan
 
     print("=" * 65)
-    print("  SEO2 - CHIEN LUOC TOAN DIEN CHO TOPDEV.VN")
+    print(f"  {cfg.APP_NAME} - TARGET: {cfg.TARGET_URL}")
     print("  80% Content & Backlink | 20% Automation")
     print("=" * 65)
 
@@ -47,15 +54,15 @@ def show_strategy():
 
 
 if __name__ == "__main__":
-    if "--auto" in sys.argv or "--search" in sys.argv:
+    if any(flag in sys.argv for flag in ("--auto", "--search", "--direct")):
         # 20% Automation — gi?i h?n 25 session/ngày
-        from utils.rate_limiter import can_run_session, mark_session_run, get_today_summary
+        from utils.rate_limiter import acquire_session, get_today_summary
         import asyncio
 
         summary = get_today_summary()
         print(f"[RateLimit] H�m nay ch?y: {summary['ran']}/{summary['ran'] + summary['remaining']} session")
 
-        allowed, reason = can_run_session()
+        allowed, reason = acquire_session()
         if not allowed:
             print(f"[RateLimit] {reason}")
             sys.exit(1)
@@ -69,21 +76,30 @@ if __name__ == "__main__":
 
         async def run_limited():
             mgr = BrowserManager()
-            browser = await mgr.launch_browser()
-            page = await mgr.create_context(browser)
-
-            if use_search:
-                from tests.test_search_flow import run_search_flow
-                await run_search_flow(page)
-            else:
+            page = None
+            try:
+                browser = await mgr.launch_browser()
+                page = await mgr.create_context(browser)
+                duration = cfg.TEST_DURATION
+                if use_search:
+                    from tests.test_search_flow import run_search_flow
+                    return await run_search_flow(page, duration)
                 from tests.test_direct_access import run_deep_session
-                await run_deep_session(page)
+                return await run_deep_session(page, duration)
+            finally:
+                if page:
+                    try:
+                        state_file = getattr(page.context, "_seo_state_file", None)
+                        if state_file and not cfg.ALWAYS_NEW_USER:
+                            await page.context.storage_state(path=state_file)
+                        await page.context.close()
+                    except Exception:
+                        pass
+                await mgr.close()
 
-            await mgr.close()
-
-        asyncio.run(run_limited())
-        mark_session_run()
-        print(f"[RateLimit] D? xong. Còn {get_today_summary()['remaining']} session h�m nay.")
+        succeeded = asyncio.run(run_limited())
+        status = "Đã hoàn thành" if succeeded else "Phiên không đạt mục tiêu"
+        print(f"[RateLimit] {status}. Còn {get_today_summary()['remaining']} session hôm nay.")
 
     elif "--plan" in sys.argv:
         from content.planner import print_plan

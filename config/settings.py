@@ -6,8 +6,11 @@
 
 # M?c tiêu content hàng tháng
 CONTENT_GOAL_MONTHLY = 30          # 30 bài/tháng: blog, video, social, review
-CONTENT_FOCUS = "lam dep"          # Ngách chính
-TARGET_URL = "https://nankybeauty.com/"   # Website m?c tiêu
+CONTENT_FOCUS = "Công cụ AI tìm kiếm khách hàng"          # Ngách chính
+TARGET_URL = "https://maxmorus.com/"   # Website m?c tiêu
+
+APP_NAME = "ZizaSeo"
+APP_VERSION = "1.0.0"
 
 # AI Content Generation
 CONTENT_MODEL = "qwen3:30b-a3b"    # Model cho sinh content (ho?c "deepseek-chat")
@@ -28,6 +31,14 @@ PROXY_LIST = []
 
 # Browser
 HEADLESS_MODE = False
+# "direct": bỏ Google khi gặp CAPTCHA; "manual": chờ xác minh thủ công.
+CAPTCHA_ACTION = "direct"
+# Chỉ dùng cho CAPTCHA_ACTION = "manual".
+CAPTCHA_WAIT_SECONDS = 180
+CAPTCHA_COOLDOWN_SECONDS = 60
+# Google lỗi/không có kết quả thì vẫn truy cập TARGET_URL trực tiếp.
+TARGET_NAVIGATION_ATTEMPTS = 3
+TARGET_NAVIGATION_TIMEOUT_MS = 60000
 LOAD_IMAGES = True
 VIEWPORT_SIZE = {"width": 1920, "height": 1080}
 
@@ -54,11 +65,14 @@ DURATION_MAX = 180                 # T?ng lên 180s ?? có phân tán
 TEST_DURATION = 60
 
 # Gi?i h?n t?n su?t — TRÁNH B? GOOGLE PHÁT HI?N
-MAX_SESSIONS_PER_DAY = 25          # T?i ?a 25 session/ngày (không ph?i 100+)
-MIN_INTERVAL_BETWEEN_SESSIONS = 300 # 5 phút gi?a các session
+MAX_SESSIONS_PER_DAY = 250          # T?i ?a 25 session/ngày (không ph?i 100+)
+MIN_INTERVAL_BETWEEN_SESSIONS = 300 # 5 phút giữa 2 session của cùng một worker
 
 # Loop (ch? b?t khi c?n)
-LOOP_ENABLE = False
+LOOP_ENABLE = True
+# Chạy vô thời hạn, không nghỉ giữa phiên và không áp dụng hạn mức phiên/ngày.
+# Chỉ có hiệu lực khi AUTO LOOP bật; nhấn Dừng để kết thúc.
+LOOP_CONTINUOUS = True
 LOOP_DURATION_MINUTES = 60
 ALWAYS_NEW_USER = True
 
@@ -86,27 +100,42 @@ REST_BETWEEN_SESSIONS_MAX = 45
 PEAK_HOURS_ENABLE = True          # Ch?y nhi?u h?n vào gi? cao ?i?m
 PEAK_HOURS = [(9, 11), (14, 16), (19, 22)]  # Khung gi? VN
 SEO_KEYWORDS = [
-    "nối mi thủ đức",
-    "eyelash extensions ho chi minh city",
-    "uốn mi thủ đức",
-    "best eyelashes near me",
-    "eyelash extensions ho chi minh",
-    "eyelash extension near me",
-    "chuyên bán dụng cụ nối mi ở tphcm",
-    "lash extensions near me",
-    "mi wispy là gì",
-    "dụng cụ nối mi giá rẻ tphcm",
-    "nối mi quận 2",
-    "nối mi thảo điền",
-    "uốn mi quận 2",
-    "nối mi gần đây",
-    "nối mi trần não",
-    "uốn mi gần đây",
-    "eyelashes near me",
-    "eyelash extensions distric 2",
-]
+                 "AI tìm lead từ Facebook Group",
+                 "AI tìm khách hàng từ Facebook Group",
+                 "công cụ AI tìm lead Facebook",
+                 "phần mềm tìm lead Facebook Group",
+                 "tìm lead Facebook bằng AI",
+                 "AI lọc lead Facebook Group",
+                 "tool AI săn lead Facebook",
+                 "tự động hóa tìm lead Facebook",
+                 "Max Morus AI",
+                 "cách tìm khách hàng tiềm năng từ Facebook Group"
+               ]
 
 # AI Engine
+import os
+
+# Chỉ chọn MỘT provider: "gemini", "aibox", "maxmorus" hoặc "local".
+# Các cấu hình/key bên dưới chỉ được dùng khi chọn provider tương ứng.
+AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").strip().lower()
+AI_FALLBACK_LOCAL = os.getenv("AI_FALLBACK_LOCAL", "true").strip().lower() in ("true", "1", "yes")
+
+# AI Box: endpoint chat completions đầy đủ; không lưu key trong source.
+AIBOX_API_KEY = os.getenv("AIBOX_API_KEY", "")
+AIBOX_API_URL = os.getenv("AIBOX_API_URL", "https://api.ai-box.vn/v1/chat/completions")
+AIBOX_MODEL = os.getenv("AIBOX_MODEL", "deepseek-v4.1-flash")
+
+# MaxMorus: OpenAI-compatible chat completions.
+MAXMORUS_API_KEY = os.getenv("MAXMORUS_API_KEY", "")
+MAXMORUS_API_URL = os.getenv("MAXMORUS_API_URL", "https://ai.maxmorus.com/v1/chat/completions")
+MAXMORUS_MODEL = os.getenv("MAXMORUS_MODEL", "cl/deepseek/deepseek-v4.1-flash")
+
+# Gemini API - khong ghi API key truc tiep vao source khi dua code len Git.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta"
+
+# Ollama duoc giu lai de kiem tra model local tu UI.
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = "qwen3:30b-a3b"
 

@@ -1,3 +1,4 @@
+from utils.targets import get_target_url
 import asyncio
 import random
 from playwright.async_api import Page
@@ -21,8 +22,8 @@ async def auto_fake_conversion(page: Page):
     Thay vào ?ó: t?p trung content th?t, backlink th?t"""
     pass
 
-async def run_deep_session(page: Page):
-    target_url = cfg.TARGET_URL
+async def run_deep_session(page: Page, duration: int | None = None):
+    target_url = get_target_url()
     total_time_spent = 0
     ai_topic = random.choice(cfg.SEO_KEYWORDS) if hasattr(cfg, 'SEO_KEYWORDS') and cfg.SEO_KEYWORDS else "sản phẩm và dịch vụ nổi bật"
     referer = random.choice(REFERERS) if random.random() < 0.7 else None
@@ -44,9 +45,11 @@ async def run_deep_session(page: Page):
         await auto_close_popups(page)
         
         # Tương tác phong phú trên site
-        await rich_on_site_interaction(page, ai_topic, max_pages=3)
+        await rich_on_site_interaction(page, ai_topic, max_pages=3, duration=duration)
 
         print(f"--- [SESSION END] Hoàn thành tốt. ---")
+        return True
 
     except Exception as e:
         print(f"--- [FAILED] Lỗi Session ngắt quãng: {e} ---")
+        return False

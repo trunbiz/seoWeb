@@ -8,21 +8,38 @@ from utils.interactions import human_scroll, click_random_internal_link, random_
 
 # ----- DATA -----
 YOUTUBE_KEYWORDS = [
-    "nhac lofi chill", "nhac tiktok remix 2024", "review iphone 15",
-    "highlight bong da ngoai hang anh", "huong dan tap gym",
-    "meo may doremon", "son tung mtp", "mrbeast vietsub",
-    "lam dep tai nha", "noi mi tu nhien", "cham soc da mat",
-    "review my pham Han Quoc", "huong dan make-up co ban"
+  "trunbiz AI tìm lead",
+    "trunbiz Facebook Group",
+    "trunbiz tìm khách hàng",
+    "trunbiz Max Morus",
+    "trunbiz tool AI",
+    "trunbiz sales",
+    "trunbiz marketing",
+    "AI tìm lead từ Facebook Group",
+      "cách tìm lead Facebook Group",
+      "công cụ AI tìm lead Facebook",
+      "Max Morus hướng dẫn",
+      "Max Morus review",
+      "cách bán hàng trên Facebook Group",
+      "tool AI sales Việt Nam"
 ]
 
 NEWS_SITES = [
-    "https://vnexpress.net", "https://dantri.com.vn",
-    "https://kenh14.vn", "https://24h.com.vn",
-    "https://phunuvietnam.vn", "https://elle.vn"
+  "https://cafef.vn",
+  "https://vietnambiz.vn",
+  "https://genk.vn",
+  "https://tinhte.vn",
+  "https://brandvietnam.com",
+  "https://marketingai.vn",
+  "https://digitalmarketing.vn",
+  "https://vnexpress.net/kinh-doanh",
+  "https://dantri.com.vn/kinh-doanh.htm",
+  "https://cafebiz.vn"
 ]
 
 SHOPPING_SITES = [
-    "https://shopee.vn", "https://tiki.vn", "https://www.lazada.vn"
+  "https://shopee.vn",
+  "https://tiki.vn"
 ]
 
 SOCIAL_SITES = {

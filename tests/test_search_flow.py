@@ -1,3 +1,4 @@
+from utils.targets import get_target_url
 import asyncio
 import random
 import re
@@ -13,6 +14,9 @@ from utils.ai_engine import (
     PersonaConfig,
 )
 import config.settings as cfg
+from utils.captcha import is_captcha as _is_captcha, wait_for_verification
+from utils.captcha import GoogleCaptchaDetected, direct_after_captcha
+from utils.captcha import visit_target_direct
 
 
 # ─── warm-up sites phân loại theo persona ────────────────────────────────────
@@ -88,27 +92,6 @@ async def _accept_google_consent(page: Page):
                 return
         except Exception:
             pass
-
-
-def _is_captcha(page: Page) -> bool:
-    """Kiem tra CAPTCHA ca tren URL va DOM elements."""
-    # Kiem tra URL
-    url = page.url
-    if any(k in url for k in ("/sorry/", "sorry/index", "recaptcha", "captcha")):
-        return True
-    # Kiem tra element tren trang (JS CAPTCHA popup khong doi URL)
-    try:
-        captcha_selectors = [
-            "iframe[src*='recaptcha']", "div[class*='g-recaptcha']",
-            "div[class*='captcha']", "#captcha", "[aria-label*='captcha']",
-        ]
-        for sel in captcha_selectors:
-            el = page.locator(sel).first
-            if el and el.is_visible(timeout=500):
-                return True
-    except Exception:
-        pass
-    return False
 
 
 def _unwrap_google_redirect(href: str) -> str:
@@ -311,7 +294,7 @@ async def _handle_autocomplete(page: Page):
 
 
 async def _try_related_keyword_first(
-    page: Page, keyword: str, persona: PersonaConfig
+    page: Page, keyword: str, persona: PersonaConfig, stop_event=None
 ) -> bool:
     """
     Gõ từ khóa biến thể → xem SERP → nhận ra không đúng → xóa.
@@ -332,6 +315,9 @@ async def _try_related_keyword_first(
         await page.keyboard.press("Enter")
         await page.wait_for_load_state("domcontentloaded")
 
+        if not await wait_for_verification(page, stop_event):
+            raise CaptchaUnresolved()
+
         # Nhìn SERP một chút rồi nhận ra "không đúng thứ mình cần"
         look_time = random.uniform(4, 9)
         for _ in range(random.randint(1, 3)):
@@ -344,6 +330,8 @@ async def _try_related_keyword_first(
         await search_box.fill("")
         await asyncio.sleep(random.uniform(0.3, 0.6))
         return True
+    except (CaptchaUnresolved, GoogleCaptchaDetected):
+        raise
     except Exception as e:
         print(f"   [-] Bỏ qua keyword variation: {e}")
         return False
@@ -398,15 +386,18 @@ async def _verify_on_target(page: Page, domain_target: str) -> bool:
 
 # ─── main flow ───────────────────────────────────────────────────────────────
 
-async def run_search_flow(page: Page):
+class CaptchaUnresolved(Exception):
+    pass
+
+
+async def run_search_flow(page: Page, duration: int | None = None, stop_event=None):
     if not cfg.SEO_KEYWORDS:
-        print("   [❌] Lỗi: Chưa nhập Từ khóa SEO!")
-        return
+        return await visit_target_direct(page, duration, stop_event, reason="NO KEYWORDS")
 
     keyword = random.choice(cfg.SEO_KEYWORDS)
-    raw_domain = cfg.TARGET_URL.replace("https://", "").replace("http://", "").split("/")[0]
+    raw_domain = get_target_url().replace("https://", "").replace("http://", "").split("/")[0]
     domain_target = raw_domain.replace("www.", "")
-    total_time_spent = 0
+    target_reached = False
 
     try:
         print(f"--- [SEARCH SEO] Từ khóa: '{keyword}' ---")
@@ -414,7 +405,7 @@ async def run_search_flow(page: Page):
         # Song song: tạo nhân cách + hành vi tìm kiếm
         print("   [🧠] Đang tạo Nhân cách & Hành vi tìm kiếm (song song)...")
         persona, behavior = await asyncio.gather(
-            generate_user_persona(cfg.TARGET_URL),
+            generate_user_persona(get_target_url()),
             generate_search_behavior(keyword),
         )
 
@@ -445,6 +436,8 @@ async def run_search_flow(page: Page):
         # ── BƯỚC 1: Vào Google & gõ từ khóa ───────────────────────────────
         await page.goto("https://www.google.com.vn/", wait_until="domcontentloaded", timeout=60000)
         await _accept_google_consent(page)
+        if not await wait_for_verification(page, stop_event):
+            return await visit_target_direct(page, duration, stop_event)
         await asyncio.sleep(random.uniform(1.5, 3.5))
 
         search_box = page.locator("input[name='q'], textarea[name='q']").locator("visible=true").first
@@ -453,13 +446,13 @@ async def run_search_flow(page: Page):
         await asyncio.sleep(random.uniform(0.3, 0.7))
 
         # Thử từ khóa biến thể trước (25% theo behavior)
-        typed_related = False
         if behavior.get("try_related_first", False):
-            typed_related = await _try_related_keyword_first(page, keyword, persona)
+            await _try_related_keyword_first(page, keyword, persona, stop_event)
 
-        # Gõ từ khóa thật (nếu chưa gõ biến thể)
-        if not typed_related:
-            await _type_with_persona(page, keyword, persona)
+        # Luôn thay nội dung ô tìm kiếm bằng từ khóa chính sau bước biến thể.
+        search_box = page.locator("input[name='q'], textarea[name='q']").locator("visible=true").first
+        await search_box.fill("")
+        await _type_with_persona(page, keyword, persona)
         await _handle_autocomplete(page)  # 40% dismiss dropdown
         await page.keyboard.press("Enter")
         await page.wait_for_load_state("domcontentloaded")
@@ -468,9 +461,8 @@ async def run_search_flow(page: Page):
         # ── BƯỚC 2: Quét tối đa 4 trang SERP ──────────────────────────────
         found = False
         for page_num in range(1, 5):
-            if _is_captcha(page):
-                print("   [🚫] Phát hiện CAPTCHA. Dừng session.")
-                return
+            if not await wait_for_verification(page, stop_event):
+                return await visit_target_direct(page, duration, stop_event)
 
             print(f"   [*] Lướt Google trang {page_num}...")
             await _scroll_serp_like_human(page, persona, count=behavior["glance_count"] + 1)
@@ -496,6 +488,8 @@ async def run_search_flow(page: Page):
 
         # ── BƯỚC 3: Brand Search nếu vẫn chưa tìm thấy ────────────────────
         if not found:
+            if not await wait_for_verification(page, stop_event):
+                return await visit_target_direct(page, duration, stop_event)
             brand_name = domain_target.split(".")[0]
             advanced_keyword = f"{keyword} {brand_name}"
             print(f"   [🔍] Brand Search: '{advanced_keyword}'...")
@@ -510,27 +504,43 @@ async def run_search_flow(page: Page):
                 await asyncio.sleep(random.uniform(0.8, 1.5))
                 await page.keyboard.press("Enter")
                 await page.wait_for_load_state("domcontentloaded")
+                if not await wait_for_verification(page, stop_event):
+                    return await visit_target_direct(page, duration, stop_event)
                 await asyncio.sleep(random.uniform(3, 5))
                 await _scroll_serp_like_human(page, persona, count=3)
                 brand_behavior = {**behavior, "competitor_clicks": 0}
                 found = await _locate_and_click_target(page, domain_target, persona, brand_behavior)
+            except GoogleCaptchaDetected:
+                raise
             except Exception as e:
                 print(f"   [-] Lỗi Brand Search: {e}")
 
         if not found:
-            print("   [❌] Không tìm thấy web sau Brand Search. Dừng session.")
-            return
+            return await visit_target_direct(page, duration, stop_event, reason="NO SEARCH RESULT")
 
         # ── BƯỚC 4: Tương tác phong phú trên site ──────────────────────────
+        target_reached = True
         print("   [✅] Vào web thành công từ Google. Bắt đầu tương tác...")
         await asyncio.sleep(random.uniform(2, 4))
         await auto_close_popups(page)
 
         # Thay thế scroll đơn thuần bằng rich_on_site_interaction
-        max_pages = 3 if getattr(cfg, "THIRD_PAGE_ENABLE", True) else 2
-        await rich_on_site_interaction(page, keyword, max_pages=max_pages)
+        visit_third_page = (
+            getattr(cfg, "THIRD_PAGE_ENABLE", True)
+            and random.randint(1, 100) <= getattr(cfg, "THIRD_PAGE_CHANCE", 100)
+        )
+        max_pages = 3 if visit_third_page else 2
+        await rich_on_site_interaction(page, keyword, max_pages=max_pages, duration=duration)
 
         print(f"--- [SESSION END] Hoàn thành. ---")
+        return True
 
+    except GoogleCaptchaDetected:
+        return await direct_after_captcha(page, duration, stop_event)
+    except CaptchaUnresolved:
+        return await visit_target_direct(page, duration, stop_event)
     except Exception as e:
         print(f"--- [FAILED] Lỗi Search Flow: {e} ---")
+        if not target_reached:
+            return await visit_target_direct(page, duration, stop_event)
+        return False

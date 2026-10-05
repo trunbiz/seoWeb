@@ -421,10 +421,13 @@ async def back_and_forth(page: Page) -> bool:
 
 
 # ─── 9. MASTER: RICH ON-SITE INTERACTION ──────────────────────────────────
-async def rich_on_site_interaction(page: Page, keyword: str, max_pages: int = 3):
+async def _rich_on_site_interaction(
+    page: Page, keyword: str, max_pages: int = 3, duration: int | None = None
+):
     """
     Hanh vi phong phu tren site dich.
     """
+    started_at = asyncio.get_running_loop().time()
     pages_read = 1
     actions_done = []
 
@@ -492,6 +495,24 @@ async def rich_on_site_interaction(page: Page, keyword: str, max_pages: int = 3)
         except:
             pass
 
+    # Bao dam tuy chon thoi gian tren UI co tac dung ma khong chia se state
+    # giua cac worker.
+    if duration:
+        elapsed = asyncio.get_running_loop().time() - started_at
+        remaining = duration - elapsed
+        if remaining > 0:
+            await human_scroll(page, duration=remaining)
+
     # Summary
     acts = ", ".join(actions_done) if actions_done else "(khong co)"
     print(f"   [SITE] => {pages_read} trang | Hanh dong: {acts}")
+
+
+async def rich_on_site_interaction(page, keyword, max_pages=3, duration=None):
+    if duration is None:
+        return await _rich_on_site_interaction(page, keyword, max_pages, duration)
+    try:
+        return await asyncio.wait_for(
+            _rich_on_site_interaction(page, keyword, max_pages, duration), timeout=duration)
+    except asyncio.TimeoutError:
+        print(f"   [SITE] Onsite budget completed: {duration}s")

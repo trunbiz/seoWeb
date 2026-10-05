@@ -1,5 +1,5 @@
 """
-backlinks/tracker.py — Qu?n lý chi?n d?ch Backlink cho topdev.vn.
+backlinks/tracker.py — Quản lý chiến dịch backlink cho Nanky Beauty.
 
 G?m:
 - Danh sách backlink m?c tiêu (theo ngành làm ?p)
@@ -52,7 +52,7 @@ def get_tier_summary():
 def print_backlink_plan():
     """In k? ho?ch backlink chi ti?t."""
     print("=" * 80)
-    print("  BACKLINK STRATEGY — topdev.vn")
+    print("  BACKLINK STRATEGY — NANKY BEAUTY")
     print("  M?c tiêu: 20+ backlink ch?t l??ng trong 30 ngày")
     print("=" * 80)
 
@@ -77,7 +77,7 @@ def print_backlink_plan():
     print("  - DA (Domain Authority) ≥ 20")
     print("  - Liên quan ??n ngành làm ?p")
     print("  - Không spam site, không link farm")
-    print("  - Anchor text t? nhiên: 'd?ch v? n?i mi', 't?i topdev'")
+    print("  - Anchor text tự nhiên: 'dịch vụ nối mi', 'Nanky Beauty'")
     print("  - ??t t? bài vi?t blog, không ??t t? footer/sidebar")
 
     print("=" * 80)

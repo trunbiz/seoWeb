@@ -1,5 +1,6 @@
 playwright
 playwright-stealth
 customtkinter
+pillow
 requests
 fake-useragent

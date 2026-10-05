@@ -2,7 +2,7 @@
 content/planner.py — Sinh chi?n l??c Content SEO t?ng th?.
 
 Công c? này giúp t?o ra m?t l?ch trình content c?u trúc, t?i ?u theo keyword,
-t?ng authority cho topdev.vn — thay vì ch? d?a vào automation.
+tăng authority cho thương hiệu — thay vì chỉ dựa vào automation.
 
 Dùng AI (Ollama ho?c DeepSeek) ?? phân tích ngách và ?? xu?t n?i dung.
 """
@@ -23,7 +23,7 @@ DEFAULT_30D_PLAN = [
     {"day": 4,  "type": "blog",   "keyword": "n?i mi có h?i mi không",             "target": "Gi?i ?áp lo l?ng th??ng g?p"},
     {"day": 5,  "type": "video",  "keyword": "quy trình n?i mi t?i salon",         "target": "Behind-the-scenes 60s TikTok"},
     {"day": 6,  "type": "blog",   "keyword": "cách ch?n salon n?i mi uy tín",      "target": "Checklist cho khách hàng m?i"},
-    {"day": 7,  "type": "review", "keyword": "review d?ch v? n?i mi t?i topdev",   "target": "T?ng h?p c?m nh?n khách hàng th?t"},
+    {"day": 7,  "type": "review", "keyword": "review dịch vụ nối mi Nanky Beauty", "target": "Tổng hợp cảm nhận khách hàng thật"},
 
     # Tu?n 2: Chuyên sâu & So sánh
     {"day": 8,  "type": "blog",   "keyword": "n?i mi Hàn Qu?c vs Nh?t B?n",        "target": "So sánh chi ti?t 2 tr??ng phái"},
@@ -37,11 +37,11 @@ DEFAULT_30D_PLAN = [
     # Tu?n 3: M? r?ng & T?o authority
     {"day": 15, "type": "blog",   "keyword": "dịch vụ làm đẹp mắt tr?n gói",        "target": "Gói combo: mi + mày + m?t"},
     {"day": 16, "type": "blog",   "keyword": "phong cách làm ?p Hàn Qu?c hot 2026","target": "Xu h??ng làm ?p Hàn Qu?c"},
-    {"day": 17, "type": "social", "keyword": "h?c n?i mi ? ?âu",                   "target": "Gi?i thi?u khóa h?c t?i topdev"},
+    {"day": 17, "type": "social", "keyword": "học nối mi ở đâu",                   "target": "Giới thiệu khóa học tại Nanky Beauty"},
     {"day": 18, "type": "blog",   "keyword": "d?ch v? n?i mi cho cô dâu",           "target": "Gói c??i tr?n gói"},
     {"day": 19, "type": "blog",   "keyword": "cách nh?n bi?t n?i mi ch?t l??ng",    "target": "H??ng d?n cho ng??i m?i"},
     {"day": 20, "type": "video",  "keyword": "ph?ng v?n chuyên viên n?i mi",        "target": "Expert interview 3-5 phút"},
-    {"day": 21, "type": "blog",   "keyword": "d?ch v? làm ?p t?i topdev có gì hot", "target": "T?ng quan v? d?ch v?"},
+    {"day": 21, "type": "blog",   "keyword": "dịch vụ làm đẹp tại Nanky Beauty",  "target": "Tổng quan về dịch vụ"},
 
     # Tu?n 4: T?i ?u chuy?n ??i & Kêu g?i hành ??ng
     {"day": 22, "type": "blog",   "keyword": "??a ch? n?i mi ?n tay ? Sài Gòn",    "target": "Local SEO + Google Maps"},
@@ -49,9 +49,9 @@ DEFAULT_30D_PLAN = [
     {"day": 24, "type": "blog",   "keyword": "các l?u ý khi ?i n?i mi l?n d?u",     "target": "Checklist cho newbie"},
     {"day": 25, "type": "blog",   "keyword": "n?i mi cho m?t m?t mí",              "target": "K? thu?t n?i mi cho t?ng d?ng m?t"},
     {"day": 26, "type": "blog",   "keyword": "câu h?i th??ng g?p v? n?i mi",        "target": "FAQ Schema cho Google"},
-    {"day": 27, "type": "video",  "keyword": "khách hàng nói gì v? topdev",         "target": "Testimonial compilation"},
+    {"day": 27, "type": "video",  "keyword": "khách hàng nói gì về Nanky Beauty", "target": "Testimonial compilation"},
     {"day": 28, "type": "blog",   "keyword": "l?ch s? phát tri?n ngành n?i mi",     "target": "Bài dài t?o authority"},
-    {"day": 29, "type": "blog",   "keyword": "so sánh các salon n?i mi t?i VN",     "target": "So sánh có ??i chi?u topdev"},
+    {"day": 29, "type": "blog",   "keyword": "so sánh các salon nối mi tại VN",    "target": "So sánh có đối chiếu Nanky Beauty"},
     {"day": 30, "type": "review", "keyword": "t?ng k?t tháng: k?t qu? khách hàng",  "target": "Monthly roundup + CTA booking"},
 ]
 
@@ -74,7 +74,7 @@ def get_plan_summary():
 def print_plan():
     """In l?ch content ra console."""
     print("=" * 80)
-    print("  CONTENT STRATEGY — 30 NGÀY CHO TOPDEV.VN")
+    print("  CONTENT STRATEGY — 30 NGÀY CHO NANKY BEAUTY")
     print("  M?c tiêu: Xây d?ng authority t? nhiên, gi?m ph? thu?c automation")
     print("=" * 80)
     print(f"{'Ngày':<6} {'Lo?i':<8} {'Keyword':<35} {'M?c tiêu'}")

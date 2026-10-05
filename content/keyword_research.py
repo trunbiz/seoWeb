@@ -24,7 +24,7 @@ SAMPLE_KEYWORDS = [
     {"keyword": "n?i mi cho cô dâu",             "volume": 1800, "difficulty": 30, "intent": "transactional"},
     {"keyword": "cách ch?m sóc mi n?i",          "volume": 1600, "difficulty": 28, "intent": "informational"},
     {"keyword": "n?i mi ???c bao lâu",           "volume": 2200, "difficulty": 32, "intent": "informational"},
-    {"keyword": "review n?i mi topdev",          "volume": 890,  "difficulty": 12, "intent": "commercial"},
+    {"keyword": "review nối mi Nanky Beauty",    "volume": 890,  "difficulty": 12, "intent": "commercial"},
 
     # Long-tail (volume th?p, intent r?t cao)
     {"keyword": "nối mi tự nhiên không h? mi t?i salon qu?n 1", "volume": 420, "difficulty": 8, "intent": "transactional"},
@@ -44,7 +44,7 @@ FUNNEL_KEYWORDS = {
         "review n?i mi", "cách ch?n salon n?i mi"
     ],
     "BOFU (Quy?t ??nh)": [
-        "??t l?ch n?i mi", "n?i mi t?i topdev", "khuy?n mãi n?i mi",
+        "đặt lịch nối mi", "nối mi tại Nanky Beauty", "khuyến mãi nối mi",
         "n?i mi giá r? ? Sài Gòn", "d?ch v? n?i mi t?i nhà"
     ],
 }
@@ -61,7 +61,7 @@ def get_keyword_opportunities(min_volume=300, max_difficulty=50):
 def print_keyword_report():
     """In báo cáo keyword ra console."""
     print("=" * 80)
-    print("  KEYWORD RESEARCH REPORT — topdev.vn")
+    print("  KEYWORD RESEARCH REPORT — NANKY BEAUTY")
     print("  Ngành: N?i mi, U?n mi, Làm ?p m?t")
     print("=" * 80)
 
