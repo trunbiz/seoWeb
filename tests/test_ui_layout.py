@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 import ui
+import config.settings as cfg
 
 
 class ZizaSeoUITests(unittest.TestCase):
@@ -75,3 +76,36 @@ class ZizaSeoUITests(unittest.TestCase):
         self.assertEqual(app.entry_loop_time.cget("state"), "disabled")
         self.assertEqual(app.chk_ytb.get(), 0)
         self.assertTrue(app.entry_aibox_key.grid_info())
+
+    def test_start_collects_and_validates_additional_targets(self):
+        app = self.app
+        original_url = app.entry_url.get()
+        original_targets = app.txt_targets.get("1.0", "end-1c")
+        original_config = {name: value for name, value in vars(cfg).items() if name.isupper()}
+        try:
+            app.entry_url.delete(0, "end")
+            app.entry_url.insert(0, "https://main.example/")
+            app.txt_targets.delete("1.0", "end")
+            app.txt_targets.insert("1.0", "https://second.example/\nhttps://main.example/\nhttps://third.example/")
+            with patch.object(ui.threading, "Thread") as worker:
+                app.start_thread()
+            worker.return_value.start.assert_called_once()
+            self.assertEqual(cfg.TARGET_URLS, ["https://main.example/", "https://second.example/", "https://third.example/"])
+            self.assertEqual(cfg.TARGET_URL, "https://main.example/")
+            app.is_running = False
+            app.update_ui_state(running=False)
+            app.txt_targets.insert("end", "\ninvalid-url")
+            with patch.object(ui.messagebox, "showerror") as error, patch.object(ui.threading, "Thread") as worker:
+                app.start_thread()
+            error.assert_called_once()
+            worker.assert_not_called()
+            self.assertFalse(app.is_running)
+        finally:
+            app.is_running = False
+            app.update_ui_state(running=False)
+            app.entry_url.delete(0, "end")
+            app.entry_url.insert(0, original_url)
+            app.txt_targets.delete("1.0", "end")
+            app.txt_targets.insert("1.0", original_targets)
+            for name, value in original_config.items():
+                setattr(cfg, name, value)

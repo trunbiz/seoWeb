@@ -10,10 +10,10 @@ import traceback
 import requests
 from tkinter import END
 from tkinter import messagebox
-from urllib.parse import urlparse
 from pathlib import Path
 from utils.ui_layout import ZizaLayout, BG, ACCENT, MUTED
 from utils.user_settings import load_settings, save_settings
+from utils.targets import current_target, parse_targets
 
 from core.browser_manager import BrowserManager
 from tests.test_direct_access import run_deep_session
@@ -646,12 +646,16 @@ class ZizaSeoUI(ZizaLayout, ctk.CTk):
     def start_thread(self):
         if self.is_running:
             return
-        url = self.entry_url.get().strip()
-        parsed = urlparse(url)
-        if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        try:
+            targets = parse_targets(
+                self.entry_url.get().strip() + "\n" + self.txt_targets.get("1.0", "end-1c")
+            )
+            # The main URL is required independently of additional websites.
+            parse_targets(self.entry_url.get().strip())
+        except ValueError as exc:
             self.tabs.set("Website")
             self.entry_url.focus_set()
-            messagebox.showerror(cfg.APP_NAME, "Nhập URL đầy đủ, ví dụ https://example.com", parent=self)
+            messagebox.showerror(cfg.APP_NAME, str(exc), parent=self)
             return
         try:
             minimum, maximum = int(self.entry_min_time.get()), int(self.entry_max_time.get())
@@ -676,7 +680,8 @@ class ZizaSeoUI(ZizaLayout, ctk.CTk):
         self._reset_counters()
         self.update_ui_state(running=True)
 
-        cfg.TARGET_URL   = self.entry_url.get().strip()
+        cfg.TARGET_URL   = targets[0]
+        cfg.TARGET_URLS  = targets
         cfg.TRAFFIC_MODE = self.radio_var.get()
 
         kws = self.txt_keywords.get("0.0", "end").strip().split("\n")
@@ -802,26 +807,36 @@ class ZizaSeoUI(ZizaLayout, ctk.CTk):
                     await run_warmup(page, modes)
 
             if not self.stop_event.is_set():
-                session_duration = random.randint(cfg.DURATION_MIN, cfg.DURATION_MAX)
                 mode = getattr(cfg, "TRAFFIC_MODE", "direct")
-                if mode == "search":
-                    from tests.test_search_flow import run_search_flow
-                    succeeded = await run_search_flow(page, session_duration, stop_event=self.stop_event)
-                elif mode == "aio":
-                    from scenarios.aio_traffic import run_aio_session
-                    succeeded = await run_aio_session(page, stop_event=self.stop_event)
-                elif mode == "mix":
-                    r = __import__("random").random()
-                    if r < 0.4:
-                        from tests.test_search_flow import run_search_flow
-                        succeeded = await run_search_flow(page, session_duration, stop_event=self.stop_event)
-                    elif r < 0.7:
-                        from scenarios.aio_traffic import run_aio_session
-                        succeeded = await run_aio_session(page, stop_event=self.stop_event)
-                    else:
-                        succeeded = await run_deep_session(page, session_duration)
-                else:
-                    succeeded = await run_deep_session(page, session_duration)
+                targets = list(getattr(cfg, "TARGET_URLS", None) or [cfg.TARGET_URL])
+                succeeded = True
+                for index, target in enumerate(targets, 1):
+                    if self.stop_event.is_set():
+                        succeeded = False
+                        break
+                    session_duration = random.randint(cfg.DURATION_MIN, cfg.DURATION_MAX)
+                    print(f"[W{worker_id}] 🌐 Website {index}/{len(targets)}: {target}")
+                    token = current_target.set(target)
+                    try:
+                        target_mode = mode
+                        if mode == "mix":
+                            r = random.random()
+                            target_mode = "search" if r < 0.4 else "aio" if r < 0.7 else "direct"
+                        if target_mode == "search":
+                            from tests.test_search_flow import run_search_flow
+                            target_ok = await run_search_flow(page, session_duration, stop_event=self.stop_event)
+                        elif target_mode == "aio":
+                            from scenarios.aio_traffic import run_aio_session
+                            target_ok = await run_aio_session(page, stop_event=self.stop_event)
+                        else:
+                            target_ok = await run_deep_session(page, session_duration)
+                        succeeded = bool(target_ok) and succeeded
+                        print(f"[W{worker_id}] {'✅' if target_ok else '❌'} Website {index}/{len(targets)}: {target}")
+                    except Exception as exc:
+                        succeeded = False
+                        print(f"[W{worker_id}] ❌ Website {target}: {exc}")
+                    finally:
+                        current_target.reset(token)
 
             if succeeded:
                 print(f"[W{worker_id}] ✅ Hoàn thành phiên.")

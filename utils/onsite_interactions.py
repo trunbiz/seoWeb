@@ -4,7 +4,7 @@ Hanh vi phong phu tren site dich: CTA, tabs, gallery, form, search, depth.
 """
 import asyncio
 import random
-from playwright.async_api import Page
+from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 from utils.mouse_helper import human_move
 from utils.interactions import random_sleep, human_scroll, click_semantic_internal_link
 
@@ -421,6 +421,96 @@ async def back_and_forth(page: Page) -> bool:
 
 
 # ─── 9. MASTER: RICH ON-SITE INTERACTION ──────────────────────────────────
+async def _browse_game_page(page: Page, duration: int):
+    """Read and click content without leaving the page before the required CTA."""
+    deadline = asyncio.get_running_loop().time() + duration
+    while (remaining := deadline - asyncio.get_running_loop().time()) > 0:
+        await human_scroll(page, duration=min(remaining, random.randint(5, 10)))
+        if asyncio.get_running_loop().time() >= deadline:
+            break
+        if random.random() < 0.5:
+            paragraphs = await page.locator("main p, article p").all()
+            random.shuffle(paragraphs)
+            for paragraph in paragraphs[:10]:
+                if (await paragraph.is_visible() and
+                        not await paragraph.evaluate(
+                            "el => !!el.closest('a, button, [role=button], [onclick], form')")):
+                    box = await paragraph.bounding_box()
+                    if box:
+                        await human_move(page, box['x'] + box['width'] / 2,
+                                         box['y'] + box['height'] / 2)
+                        await paragraph.click(timeout=3000)
+                        break
+
+
+async def _click_game_element(page: Page, element):
+    """Follow a normal navigation or the new tab opened by the click."""
+    popups = []
+
+    def on_popup(popup):
+        popups.append(popup)
+
+    page.on("popup", on_popup)
+    try:
+        await element.scroll_into_view_if_needed(timeout=10000)
+        box = await element.bounding_box()
+        if box:
+            await human_move(page, box['x'] + box['width'] / 2,
+                             box['y'] + box['height'] / 2)
+        await asyncio.sleep(random.uniform(0.4, 1.0))
+        await element.click(timeout=15000)
+        await asyncio.sleep(1)
+        destination = popups[-1] if popups else page
+        await destination.wait_for_load_state("domcontentloaded", timeout=60000)
+        return destination
+    finally:
+        page.remove_listener("popup", on_popup)
+
+
+async def game_card_journey(page: Page):
+    """Return the current page and whether all game steps were completed."""
+    cards = page.locator("a.game-card[href]")
+    if not await cards.count():
+        return page, False
+
+    landing_duration = random.randint(60, 120)
+    print(f"   [GAME] Luot trang dich {landing_duration}s truoc khi chon game.")
+    await _browse_game_page(page, landing_duration)
+    candidates = [card for card in await cards.all() if await card.is_visible()]
+    if not candidates:
+        print("   [GAME] Khong co game-card hien thi. Chuyen sang tuong tac binh thuong.")
+        return page, False
+    page = await _click_game_element(page, random.choice(candidates))
+    await auto_close_popups(page)
+
+    game_duration = random.randint(20, 40)
+    print(f"   [GAME] Luot trang game {game_duration}s truoc khi click btn-accent.")
+    await _browse_game_page(page, game_duration)
+    try:
+        await page.locator("button.btn-accent:visible").first.wait_for(
+            state="visible", timeout=15000)
+    except PlaywrightTimeoutError:
+        print("   [GAME] Khong co btn-accent hien thi. Chuyen sang tuong tac binh thuong.")
+        return page, False
+    buttons = [button for button in await page.locator("button.btn-accent").all()
+               if await button.is_visible() and await button.is_enabled()]
+    if not buttons:
+        print("   [GAME] Khong co btn-accent co the click. Chuyen sang tuong tac binh thuong.")
+        return page, False
+    page = await _click_game_element(page, random.choice(buttons))
+    print("   [GAME] Da click btn-accent. Cho 180s truoc khi tiep tuc.")
+    await asyncio.sleep(180)
+    game_frame = page.locator("#game-frame")
+    try:
+        await game_frame.wait_for(state="visible", timeout=15000)
+    except PlaywrightTimeoutError:
+        print("   [GAME] Khong co game-frame hien thi. Chuyen sang tuong tac binh thuong.")
+        return page, False
+    page = await _click_game_element(page, game_frame)
+    print("   [GAME] Da click #game-frame. Tiep tuc tuong tac.")
+    return page, True
+
+
 async def _rich_on_site_interaction(
     page: Page, keyword: str, max_pages: int = 3, duration: int | None = None
 ):
@@ -509,6 +599,13 @@ async def _rich_on_site_interaction(
 
 
 async def rich_on_site_interaction(page, keyword, max_pages=3, duration=None):
+    started_at = asyncio.get_running_loop().time()
+    page, game_completed = await game_card_journey(page)
+    if duration is not None and game_completed:
+        # Mandatory game steps must finish even when the UI budget is shorter.
+        duration = max(0, duration - (asyncio.get_running_loop().time() - started_at))
+        if duration <= 0:
+            return
     if duration is None:
         return await _rich_on_site_interaction(page, keyword, max_pages, duration)
     try:

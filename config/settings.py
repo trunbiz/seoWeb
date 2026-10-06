@@ -8,6 +8,7 @@
 CONTENT_GOAL_MONTHLY = 30          # 30 bài/tháng: blog, video, social, review
 CONTENT_FOCUS = "Công cụ AI tìm kiếm khách hàng"          # Ngách chính
 TARGET_URL = "https://maxmorus.com/"   # Website m?c tiêu
+TARGET_URLS = [TARGET_URL]           # Website chính, rồi các website bổ sung.
 
 APP_NAME = "ZizaSeo"
 APP_VERSION = "1.0.0"
